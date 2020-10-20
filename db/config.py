@@ -2,11 +2,10 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-DATABASE = {
-    'drivername': os.getenv('DRIVERNAME'),
-    'host': os.getenv('HOST'),
-    'port': os.getenv('PORT'),
-    'username': os.getenv('USERNAME'),
-    'password': os.getenv('PASSWORD'),
-    'database': os.getenv('DATABASE')
-}
+
+DRIVER_NAME = os.getenv('DRIVERNAME')
+HOST = os.getenv('HOST')
+PORT = os.getenv('PORT')
+USERNAME = os.getenv('USERNAME')
+PASSWORD = os.getenv('PASSWORD')
+DATABASE = os.getenv('DATABASE')
