@@ -1,5 +1,5 @@
 import asyncio
-from db.schema import init_db
+from db import db
 
 from handlers.users.daily import send_time
 
@@ -7,7 +7,7 @@ if __name__ == '__main__':
     from aiogram import executor
     from handlers import dp
     # TODO Добавить вызов функции которая проинициализирует БД, если она не существует
-    init_db()
+    db.init_db_tables()
     loop = asyncio.get_event_loop()
     loop.create_task(send_time(10))
     # TODO добавить асинхронную функцию которая будет брать подготовленные данные и отправлять пользователям

@@ -2,4 +2,3 @@
 data/database/
 .env
 __pycache__/
-db/db.py
