@@ -18,7 +18,7 @@ def init_db_tables():
     cur = conn.cursor()
 
     cur.execute('CREATE TABLE IF NOT EXISTS users('
-                'telegram_id SERIAL PRIMARY KEY, '
+                'telegram_id INTEGER PRIMARY KEY, '
                 'first_name VARCHAR(40), '
                 'last_name VARCHAR(40), '
                 'timezone INTEGER'
