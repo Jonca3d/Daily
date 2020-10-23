@@ -17,7 +17,6 @@ class sql_daily_exe:
         cursor = conn.cursor()
         cursor.execute('SELECT EXISTS(SELECT * FROM users WHERE telegram_id = %s);', (user_id,))
         result = cursor.fetchone()
-        print(result)
         return result
 
     @staticmethod
