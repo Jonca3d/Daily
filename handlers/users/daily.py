@@ -14,6 +14,7 @@ from handlers.users.message_answer import General as General_message, Daily as D
 from keyboards.inline.daily_buttons import inline_daily_function_btn, inline_daily_options_btn
 from utils.user_input import number_in_range, validation_time, normalize_time_to_pattern
 from utils.mailer import calculate_dispatch_time, send_daily_lists
+from db.daily import sql_daily_exe as sql_pg
 
 
 class Daily(StatesGroup):
@@ -37,7 +38,8 @@ class Daily(StatesGroup):
 
 @dp.message_handler(Command('test'), state='*')
 async def test_function(msg: Message):
-    await msg.answer(sql.check_timezone_options(msg.from_user.id)[0] is not None)
+    # await msg.answer(sql.check_timezone_options(msg.from_user.id)[0] is not None)
+    await msg.answer(sql_pg.check_user_subscribe_to_daily(1))
 
 
 # TODO цикл срабатывает с задежкой в 60 сек. Каждую итерацию цикла вызывать асинхронную функцию рассылки
@@ -57,7 +59,8 @@ async def process_daily(msg: Message):
     """
 
     # Проверяем есть ли такаой пользователь в нашей БД
-    if sql.check_user_subscribe_to_daily(msg.from_user.id)[0]:
+    # if sql.check_user_subscribe_to_daily(msg.from_user.id)[0]:
+    if sql_pg.check_user_subscribe_to_daily(msg.from_user.id)[0]:
         await msg.answer(text=f'{General_message.choice_action.value}',
                          reply_markup=inline_daily_function_btn,
                          parse_mode='HTML')
@@ -131,23 +134,32 @@ async def process_daily_subscribe_finish(msg: Message, state: FSMContext):
     if number_in_range(msg.text, -1, 11):
         await state.update_data(how_many_time=msg.text)
         user_data = await state.get_data()
-        sql.subscription_to_daily(msg.from_user.id,
-                                  user_data['start_time'],
-                                  user_data['finish_time'],
-                                  user_data['how_many_time'],
-                                  user_data['subscription_status'])
+        # sql.subscription_to_daily(msg.from_user.id,
+        #                           user_data['start_time'],
+        #                           user_data['finish_time'],
+        #                           user_data['how_many_time'],
+        #                           user_data['subscription_status'])
+        sql_pg.subscription_to_daily(msg.from_user.id,
+                                     user_data['start_time'],
+                                     user_data['finish_time'],
+                                     user_data['how_many_time'],
+                                     user_data['subscription_status'])
 
-        sql.remove_mailing_list(msg.from_user.id, 1)
+        # sql.remove_mailing_list(msg.from_user.id, 1)
+        sql_pg.remove_mailing_list(msg.from_user.id, 1)
         dispatch_time = calculate_dispatch_time(user_data['start_time'],
                                                 user_data['finish_time'],
                                                 user_data['how_many_time'])
 
-        sql.set_mailing_daily_list(msg.from_user.id, dispatch_time)
+        # sql.set_mailing_daily_list(msg.from_user.id, dispatch_time)
+        print(dispatch_time)
+        sql_pg.set_mailing_daily_list(msg.from_user.id, dispatch_time)
         # TODO Придумать механиз при котором пользователю будет утром предложено ввести список задач на день
         await msg.answer('Вы успешно подписались.\n'
                          f'Каждый день бот в {user_data["start_time"]} будет спрашивать у вас список дел')
 
-        if sql.check_timezone_options(msg.from_user.id)[0] is not None:
+        # if sql.check_timezone_options(msg.from_user.id)[0] is not None:
+        if sql_pg.check_timezone_options(msg.from_user.id)[0] is not None:
             await msg.answer(Daily_message.your_first_task.value)
             await Daily.add_first_tasks.set()
         else:
@@ -161,7 +173,8 @@ async def process_daily_subscribe_finish(msg: Message, state: FSMContext):
 @dp.message_handler(state=Daily.daily_set_timezone, content_types=types.ContentType.TEXT)
 async def process_daily_set_timezone(msg: Message):
     if number_in_range(msg.text, -1, 24):
-        sql.set_timezone(msg.from_user.id, msg.text)
+        # sql.set_timezone(msg.from_user.id, msg.text)
+        sql_pg.set_timezone(msg.from_user.id, msg.text)
         await msg.answer(Daily_message.your_first_task.value)
         await Daily.add_first_tasks.set()
     else:
@@ -183,10 +196,12 @@ async def process_add_first_tasks(msg: Message, state: FSMContext):
                               'просто нажмите на него',
                          reply_markup=ReplyKeyboardRemove())
     else:
-        sql.add_new_task(msg.from_user.id, msg.text, int(time.time()))
+        # sql.add_new_task(msg.from_user.id, msg.text, int(time.time()))
+        sql_pg.add_new_task(msg.from_user.id, msg.text, int(time.time()))
         tasks_list = ''
         sequential_number = 1
-        for task in sql.get_tasks_list(msg.from_user.id):
+        # for task in sql.get_tasks_list(msg.from_user.id):
+        for task in sql_pg.get_tasks_list(msg.from_user.id):
             tasks_list += str(sequential_number) + '.  ' + str(task[1]) + '\n'
             sequential_number += 1
         await msg.answer(tasks_list)
@@ -200,14 +215,17 @@ async def process_add_first_tasks(msg: Message, state: FSMContext):
 async def process_show_tasks_list(call: CallbackQuery):
     # Если в названии callback есть идентификатор задания
     # Мы ищем его среди незавершенных задач и присваиваем этой задаче статус 1 (Завершена)
-    for task in sql.get_tasks_list(call.from_user.id):
+    # for task in sql.get_tasks_list(call.from_user.id):
+    for task in sql_pg.get_tasks_list(call.from_user.id):
         if str(task[0]) in call.data:
-            sql.task_complete(task[0])
+            # sql.task_complete(task[0])
+            sql_pg.task_complete(task[0])
             await call.message.answer(text=f'Задание "{task[1]}" завершено')
 
     inline_daily_function = InlineKeyboardMarkup()
 
-    for task in sql.get_tasks_list(call.from_user.id):
+    # for task in sql.get_tasks_list(call.from_user.id):
+    for task in sql_pg.get_tasks_list(call.from_user.id):
         # При нажатии на кнопку к названию callback добавляется идентификатор задания
         inline_daily_function.add(InlineKeyboardButton(text=f'{task[1]}', callback_data=f'tasks_list:{task[0]}'))
     inline_daily_function.add(InlineKeyboardButton(text=f'{General_message.cancel.value}',
@@ -226,7 +244,8 @@ async def process_add_new_task_state_set(call: CallbackQuery):
 
 @dp.message_handler(state=Daily.add_new_task, content_types=types.ContentType.TEXT)
 async def process_add_new_task(msg: Message, state: FSMContext):
-    sql.add_new_task(msg.from_user.id, msg.text, int(time.time()))
+    # sql.add_new_task(msg.from_user.id, msg.text, int(time.time()))
+    sql_pg.add_new_task(msg.from_user.id, msg.text, int(time.time()))
     await state.finish()
     await msg.answer(text='Список задач', reply_markup=inline_daily_function_btn)
 
@@ -250,7 +269,8 @@ async def process_options_start_time(call: CallbackQuery):
 async def process_options_set_start_time(msg: Message, state: FSMContext):
     # if number_in_range(msg.text, -1, 24):
     if validation_time(msg.text):
-        sql.option_set_start_time(msg.from_user.id, normalize_time_to_pattern(msg.text))
+        # sql.option_set_start_time(msg.from_user.id, normalize_time_to_pattern(msg.text))
+        sql_pg.option_set_start_time(msg.from_user.id, normalize_time_to_pattern(msg.text))
         update_mailing_daily_list(msg.from_user.id)
         await state.finish()
         await msg.answer(text=f'{General_message.title_menu_options.value}',
@@ -271,7 +291,8 @@ async def process_options_finish_time(call: CallbackQuery):
 @dp.message_handler(state=Daily.daily_options_finish_time, content_types=types.ContentType.TEXT)
 async def process_options_set_finish_time(msg: Message, state: FSMContext):
     if validation_time(msg.text):
-        sql.option_set_finish_time(msg.from_user.id, normalize_time_to_pattern(msg.text))
+        # sql.option_set_finish_time(msg.from_user.id, normalize_time_to_pattern(msg.text))
+        sql_pg.option_set_finish_time(msg.from_user.id, normalize_time_to_pattern(msg.text))
         update_mailing_daily_list(msg.from_user.id)
         await state.finish()
         await msg.answer(text=f'{General_message.title_menu_options.value}',
@@ -292,7 +313,8 @@ async def process_options_how_many_time(call: CallbackQuery):
 @dp.message_handler(state=Daily.daily_options_how_many_time, content_types=types.ContentType.TEXT)
 async def process_options_set_how_many_time(msg: Message, state: FSMContext):
     if number_in_range(msg.text, -1, 24):
-        sql.option_set_how_many_time(msg.from_user.id, msg.text)
+        # sql.option_set_how_many_time(msg.from_user.id, msg.text)
+        sql_pg.option_set_how_many_time(msg.from_user.id, msg.text)
         update_mailing_daily_list(msg.from_user.id)
         await state.finish()
         await msg.answer(text=f'{General_message.title_menu_options.value}',
@@ -319,7 +341,10 @@ async def process_quit_daily(call: CallbackQuery):
 
 # TODO Продумать куда вынести такие сервисные функции
 def update_mailing_daily_list(user_id):
-    sql.remove_mailing_list(user_id, 1)
-    options = sql.get_options_daily(user_id)
+    # sql.remove_mailing_list(user_id, 1)
+    sql_pg.remove_mailing_list(user_id, 1)
+    # options = sql.get_options_daily(user_id)
+    options = sql_pg.get_options_daily(user_id)
     dispatch_time = calculate_dispatch_time(options[0], options[1], options[2])
-    sql.set_mailing_daily_list(user_id, dispatch_time)
+    # sql.set_mailing_daily_list(user_id, dispatch_time)
+    sql_pg.set_mailing_daily_list(user_id, dispatch_time)
