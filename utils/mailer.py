@@ -3,18 +3,18 @@ from datetime import datetime
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from loader import bot
-from utils.db_sqlite_api.sqlite import sql_exec as sql
+from db.daily import sql_daily_exe as sql_pg
 from keyboards.inline.daily_buttons import GeneralM
 from utils.service import convert_time_to_minutes, convert_minutes_to_time
 
 
 async def send_daily_lists():
     now = datetime.now().strftime('%H:%M')
-    daily_users_list = sql.get_mailing_list(now, 1)
+    daily_users_list = sql_pg.get_mailing_list(now, 1)
     if len(daily_users_list) > 0:
         inline_daily_function = InlineKeyboardMarkup()
         for user in daily_users_list[0]:
-            for task in sql.get_tasks_list(user):
+            for task in sql_pg.get_tasks_list(user):
                 inline_daily_function.add(InlineKeyboardButton(text=f'{task[1]}',
                                                                callback_data=f'tasks_list:{task[0]}'))
             inline_daily_function.add(InlineKeyboardButton(text=f'{GeneralM.cancel.value}',
