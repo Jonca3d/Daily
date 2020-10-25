@@ -1,7 +1,5 @@
 from aiogram.dispatcher.filters import Command
 from aiogram.types import Message
-
-from utils.db_sqlite_api.sqlite import sql_exec as sql
 from db.daily import sql_daily_exe as sql_pg
 
 from handlers.users import dp
@@ -21,7 +19,6 @@ async def show_test(msg: Message):
 #  попал в БД
 @dp.message_handler(Command('start'))
 async def process_start(msg: Message):
-    # user_exists = sql.check_user_exists(msg.from_user.id)[0]
     user_exists = sql_pg.check_user_exists(msg.from_user.id)[0]
     if user_exists:
         await msg.answer(text=f'С возвращением {msg.from_user.first_name}.\n'
@@ -29,7 +26,6 @@ async def process_start(msg: Message):
     else:
         await msg.answer(text=f'{msg.from_user.first_name}, приятно познакомится.\n'
                               'Для вызова спраки введите /help')
-        # sql.add_new_user(msg.from_user.id, msg.from_user.first_name, msg.from_user.last_name)
         sql_pg.add_new_user(msg.from_user.id, msg.from_user.first_name, msg.from_user.last_name)
 
 
